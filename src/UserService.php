@@ -1,0 +1,193 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App;
+
+use InvalidArgumentException;
+use PDO;
+use RuntimeException;
+
+/**
+ * Здесь основная логика: регистрация, логин, подтверждение почты, bulk-действия.
+ * Контроллер (index.php) становится тонким.
+ */
+
+class UserService
+{
+    private UserRepository $users;
+    private MailQueue $mailQueue;
+
+    public function __construct(PDO $pdo)
+    {
+        $this->users     = new UserRepository($pdo);
+        $this->mailQueue = new MailQueue($pdo);
+    }
+
+    /**
+     * Регистрация нового пользователя.
+     * Бросает исключения, если что-то не так.
+     */
+
+    public function register(string $name, string $email, string $password): int
+    {
+        $name  = trim($name);
+        $email = trim($email);
+
+        if ($name === '' || $email === '' || $password === '') {
+            throw new InvalidArgumentException('Name, e-mail and password are required.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('E-mail address is not valid.');
+        }
+
+        // Валидацию уникальности окончательно обеспечивает уникальный индекс в БД.
+        $passwordHash      = password_hash($password, PASSWORD_DEFAULT);
+        $verificationToken = bin2hex(random_bytes(32));
+
+        try {
+            $userId = $this->users->create($name, $email, $passwordHash, $verificationToken);
+        } catch (\PDOException $e) {
+            // Код 23000 — нарушение уникального ограничения (для MySQL).
+            if ((int) $e->getCode() === 23000) {
+                throw new RuntimeException('User with this e-mail already exists.');
+            }
+
+            throw $e;
+        }
+
+        // Собираем ссылку подтверждения
+        $verifyUrl = BASE_URL . '/index.php?page=verify_email&token=' . urlencode($verificationToken);
+
+        $subject = 'Please confirm your e-mail';
+        $body    = "Hello {$name},\n\n"
+            . "Thank you for registering.\n"
+            . "To confirm your e-mail, please click the link below:\n"
+            . $verifyUrl . "\n\n"
+            . "If you did not register on this site, please ignore this message.\n";
+
+        // Кладём письмо в очередь
+        $this->mailQueue->enqueue($email, $subject, $body);
+
+        return $userId;
+    }
+
+    /**
+     * Логин по e-mail + пароль.
+     */
+    public function login(string $email, string $password): array
+    {
+        $email = trim($email);
+
+        if ($email === '' || $password === '') {
+            throw new InvalidArgumentException('E-mail and password are required.');
+        }
+
+        $user = $this->users->findByEmail($email);
+
+        if ($user === null) {
+            throw new RuntimeException('Invalid e-mail or password.');
+        }
+
+        if (!password_verify($password, $user['password_hash'])) {
+            throw new RuntimeException('Invalid e-mail or password.');
+        }
+
+        if ($user['status'] === 'blocked') {
+            throw new RuntimeException('Your account is blocked.');
+        }
+
+        $this->users->updateLastLogin((int) $user['id']);
+
+        return $this->users->findById((int) $user['id']);
+    }
+
+    /**
+     * Подтверждение e-mail по токену.
+     */
+
+    public function verifyEmail(string $token): ?array
+    {
+        if ($token === '') {
+            return null;
+        }
+
+        return $this->users->markEmailVerified($token);
+    }
+
+    /**
+     * Проверка текущего пользователя:
+     * - если не залогинен — null;
+     * - если нет в БД или заблокирован — логаут и null.
+     */
+
+    public function getCurrentUser(): ?array
+    {
+        $userId = Auth::userId();
+        if ($userId === null) {
+            return null;
+        }
+
+        $user = $this->users->findById($userId);
+        if ($user === null) {
+            Auth::logout();
+            return null;
+        }
+
+        if ($user['status'] === 'blocked') {
+            Auth::logout();
+            return null;
+        }
+
+        $this->users->updateLastActivity($userId);
+
+        return $user;
+    }
+
+    /**
+     * Пользователи для таблицы.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+
+    public function listUsersForTable(): array
+    {
+        return $this->users->findAllForTable();
+    }
+
+    /**
+     * Применение bulk-действий (block/unblock/delete/delete_unverified).
+     *
+     * @param int[] $ids
+     */
+
+    public function applyBulkAction(string $action, array $ids, int $currentUserId): void
+    {
+        // Нормализуем массив id
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+
+        if (!$ids) {
+            return;
+        }
+
+        switch ($action) {
+            case 'block':
+                $this->users->updateStatus($ids, 'blocked');
+                break;
+            case 'unblock':
+                $this->users->updateStatus($ids, 'active');
+                break;
+            case 'delete':
+                $this->users->deleteByIds($ids);
+                break;
+            case 'delete_unverified':
+                $this->users->deleteUnverifiedByIds($ids);
+                break;
+            default:
+                throw new InvalidArgumentException('Unknown bulk action.');
+        }
+
+        // Специальная логика по текущему пользователю будет обработана в контроллере
+    }
+}

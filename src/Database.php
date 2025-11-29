@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App;
+
+use PDO;
+use PDOException;
+
+/**
+ * Очень простой синглтон вокруг PDO.
+ * Цель: один раз настроить PDO, дальше везде вызывать Database::getConnection().
+ */
+class Database
+{
+    private static ?PDO $connection = null;
+
+    public static function getConnection(): PDO
+    {
+        if (self::$connection === null) {
+            $dsn = sprintf(
+                'mysql:host=%s;dbname=%s;charset=%s',
+                DB_HOST,
+                DB_NAME,
+                DB_CHARSET
+            );
+
+            try {
+                self::$connection = new PDO(
+                    $dsn,
+                    DB_USER,
+                    DB_PASSWORD,
+                    [
+                        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]
+                );
+            } catch (PDOException $e) {
+                // можно просто показать ошибку и завершиться.
+                exit('Database connection failed: ' . $e->getMessage());
+            }
+        }
+
+        return self::$connection;
+    }
+}
