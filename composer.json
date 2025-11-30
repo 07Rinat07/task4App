@@ -1,0 +1,13 @@
+{
+  "name": "student/task4-app",
+  "description": "Simple user management app for Task #4 (PHP)",
+  "type": "project",
+  "require": {
+    "php": "^8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  }
+}
