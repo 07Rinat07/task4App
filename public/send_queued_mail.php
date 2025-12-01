@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /**
- *    скрипт запускается из консоли:
- *    php public/send_queued_mail.php
+ * Скрипт запускается из консоли:
+ *   php public/send_queued_mail.php
  *
  * Он забирает письма из mail_queue и отправляет их через mail().
- * В реальном проекте здесь может быть PHPMailer или другая библиотека.
+ * В реальном проекте здесь могла бы быть библиотека PHPMailer и т.п.
  */
 
 use App\Database;

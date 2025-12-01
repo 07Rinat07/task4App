@@ -23,7 +23,7 @@ ob_start();
                 </div>
             </div>
 
-            <form method="post" action="<?= BASE_URL ?>/index.php?page=bulk_action" id="usersForm">
+            <form method="post" action="index.php?page=bulk_action" id="usersForm">
                 <!-- Тулбар над таблицей -->
                 <div class="btn-toolbar mb-3" role="toolbar">
                     <div class="btn-group me-2" role="group">
@@ -119,7 +119,6 @@ ob_start();
     </div>
 
     <script>
-        // Простой фильтр по имени и e-mail.
         (function () {
             var filterInput = document.getElementById('filterInput');
             var table       = document.getElementById('usersTable');
@@ -150,7 +149,8 @@ ob_start();
             });
         })();
     </script>
-
 <?php
-$content = ob_get_clean();
+$content      = ob_get_clean();
+$currentUser  = $currentUser ?? null;
+
 include __DIR__ . '/layout.php';

@@ -8,9 +8,8 @@ use DateTimeImmutable;
 use PDO;
 
 /**
- * Класс только для SQL по таблице users.
+ * Класс для работы с таблицей users (SQL-запросы без бизнес-логики).
  */
-
 class UserRepository
 {
     public function __construct(private readonly PDO $pdo)
@@ -61,7 +60,9 @@ class UserRepository
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
         $stmt = $this->pdo->prepare(
-            'UPDATE users SET last_login_at = :time, last_activity_at = :time WHERE id = :id'
+            'UPDATE users
+             SET last_login_at = :time, last_activity_at = :time
+             WHERE id = :id'
         );
         $stmt->execute([
             'time' => $now,
@@ -74,7 +75,9 @@ class UserRepository
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
         $stmt = $this->pdo->prepare(
-            'UPDATE users SET last_activity_at = :time WHERE id = :id'
+            'UPDATE users
+             SET last_activity_at = :time
+             WHERE id = :id'
         );
         $stmt->execute([
             'time' => $now,
@@ -84,16 +87,15 @@ class UserRepository
 
     public function markEmailVerified(string $token): ?array
     {
-        // Ищем пользователя по токену подтверждения
-        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE verification_token = :token');
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM users WHERE verification_token = :token'
+        );
         $stmt->execute(['token' => $token]);
         $user = $stmt->fetch();
 
         if ($user === false) {
             return null;
         }
-
-        // Если был заблокирован, оставляем blocked, иначе -> active
 
         $stmt = $this->pdo->prepare(
             'UPDATE users
@@ -111,7 +113,6 @@ class UserRepository
      *
      * @return array<int, array<string, mixed>>
      */
-
     public function findAllForTable(): array
     {
         $stmt = $this->pdo->query(
@@ -128,7 +129,6 @@ class UserRepository
      *
      * @param int[] $ids
      */
-
     public function updateStatus(array $ids, string $status): void
     {
         if (!$ids) {
@@ -148,7 +148,6 @@ class UserRepository
      *
      * @param int[] $ids
      */
-
     public function deleteByIds(array $ids): void
     {
         if (!$ids) {
@@ -167,7 +166,6 @@ class UserRepository
      *
      * @param int[] $ids
      */
-
     public function deleteUnverifiedByIds(array $ids): void
     {
         if (!$ids) {
@@ -175,7 +173,8 @@ class UserRepository
         }
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql          = "DELETE FROM users WHERE id IN ($placeholders) AND status = 'unverified'";
+        $sql          = "DELETE FROM users
+                         WHERE id IN ($placeholders) AND status = 'unverified'";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($ids);

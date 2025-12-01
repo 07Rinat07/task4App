@@ -18,9 +18,8 @@ $userService = new UserService($pdo);
 $page = $_GET['page'] ?? 'home';
 
 /**
- * функция редиректа внутрь приложения.
+ * Редирект внутрь приложения.
  */
-
 function redirectTo(string $page): void
 {
     $url = BASE_URL . '/index.php?page=' . urlencode($page);
@@ -29,11 +28,10 @@ function redirectTo(string $page): void
 }
 
 /**
- * Гард для страниц, куда пускаем только залогиненных незаблокированных users.
+ * Гард для страниц, куда пускаем только залогиненных незаблокированных пользователей.
  *
  * @return array<string, mixed> текущий пользователь
  */
-
 function requireAuthenticatedUser(UserService $userService): array
 {
     $user = $userService->getCurrentUser();
@@ -73,7 +71,7 @@ switch ($page) {
             $password = $_POST['password'] ?? '';
 
             try {
-                $userService->register($name, $email, $password);
+                $userId = $userService->register($name, $email, $password);
                 Flash::add(
                     'success',
                     'Registration successful. Please check your e-mail for confirmation link.'
@@ -129,12 +127,16 @@ switch ($page) {
             }
 
             try {
-                $userService->applyBulkAction($action, $ids, (int) $currentUser['id']);
+                $userService->applyBulkAction($action, $ids);
 
-                // Если текущий пользователь сам себя заблокировал/удалил – выкидываем на логин.
-                if (in_array($currentUser['id'], array_map('intval', $ids), true)) {
+                // Если текущий пользователь сам себя заблокировал/удалил — выкидываем на логин.
+                $selectedIds = array_map('intval', $ids);
+                if (in_array((int) $currentUser['id'], $selectedIds, true)) {
                     Auth::logout();
-                    Flash::add('info', 'Your account has been changed. Please log in again if possible.');
+                    Flash::add(
+                        'info',
+                        'Your account has been changed. Please log in again if possible.'
+                    );
                     redirectTo('login');
                 }
 
@@ -149,7 +151,6 @@ switch ($page) {
 
     case 'home':
     default:
-        // логика: если залогинен и не заблокирован — сразу в таблицу, иначе на логин.
         $currentUser = $userService->getCurrentUser();
         if ($currentUser === null) {
             redirectTo('login');

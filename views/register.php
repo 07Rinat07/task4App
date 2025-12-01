@@ -13,7 +13,7 @@ ob_start();
                 <div class="card-body">
                     <h1 class="h4 mb-3 text-center">Create an account</h1>
 
-                    <form method="post" action="<?= BASE_URL ?>/index.php?page=register">
+                    <form method="post" action="index.php?page=register">
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
                             <input type="text" name="name" id="name" class="form-control" required>
@@ -28,7 +28,7 @@ ob_start();
                             <label for="password" class="form-label">Password</label>
                             <input type="password" name="password" id="password" class="form-control" required>
                             <div class="form-text">
-                                По условию задачи любой непустой пароль (даже один символ).
+                                По условию задачи допускается любой непустой пароль (даже один символ).
                             </div>
                         </div>
 
@@ -37,15 +37,14 @@ ob_start();
 
                     <p class="mt-3 mb-0 text-center">
                         Already have an account?
-                        <a href="<?= BASE_URL ?>/index.php?page=login">Sign in</a>
+                        <a href="index.php?page=login">Sign in</a>
                     </p>
                 </div>
             </div>
         </div>
     </div>
 <?php
-$content = ob_get_clean();
-$currentUser = $currentUser ?? null;
+$content      = ob_get_clean();
+$currentUser  = $currentUser ?? null;
 
 include __DIR__ . '/layout.php';
-

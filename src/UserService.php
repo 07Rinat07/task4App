@@ -9,10 +9,9 @@ use PDO;
 use RuntimeException;
 
 /**
- * Здесь основная логика: регистрация, логин, подтверждение почты, bulk-действия.
- * Контроллер (index.php) становится тонким.
+ * Основная бизнес-логика вокруг пользователей:
+ * регистрация, логин, подтверждение почты, bulk-операции.
  */
-
 class UserService
 {
     private UserRepository $users;
@@ -26,9 +25,9 @@ class UserService
 
     /**
      * Регистрация нового пользователя.
-     * Бросает исключения, если что-то не так.
+     *
+     * @throws InvalidArgumentException|RuntimeException
      */
-
     public function register(string $name, string $email, string $password): int
     {
         $name  = trim($name);
@@ -42,14 +41,13 @@ class UserService
             throw new InvalidArgumentException('E-mail address is not valid.');
         }
 
-        // Валидацию уникальности окончательно обеспечивает уникальный индекс в БД.
         $passwordHash      = password_hash($password, PASSWORD_DEFAULT);
         $verificationToken = bin2hex(random_bytes(32));
 
         try {
             $userId = $this->users->create($name, $email, $passwordHash, $verificationToken);
         } catch (\PDOException $e) {
-            // Код 23000 — нарушение уникального ограничения (для MySQL).
+            // 23000 — нарушение уникального ограничения (UNIQUE INDEX).
             if ((int) $e->getCode() === 23000) {
                 throw new RuntimeException('User with this e-mail already exists.');
             }
@@ -57,7 +55,6 @@ class UserService
             throw $e;
         }
 
-        // Собираем ссылку подтверждения
         $verifyUrl = BASE_URL . '/index.php?page=verify_email&token=' . urlencode($verificationToken);
 
         $subject = 'Please confirm your e-mail';
@@ -67,14 +64,15 @@ class UserService
             . $verifyUrl . "\n\n"
             . "If you did not register on this site, please ignore this message.\n";
 
-        // Кладём письмо в очередь
         $this->mailQueue->enqueue($email, $subject, $body);
 
         return $userId;
     }
 
     /**
-     * Логин по e-mail + пароль.
+     * Логин по e-mail и паролю.
+     *
+     * @return array<string, mixed>
      */
     public function login(string $email, string $password): array
     {
@@ -105,8 +103,9 @@ class UserService
 
     /**
      * Подтверждение e-mail по токену.
+     *
+     * @return array<string, mixed>|null
      */
-
     public function verifyEmail(string $token): ?array
     {
         if ($token === '') {
@@ -117,11 +116,12 @@ class UserService
     }
 
     /**
-     * Проверка текущего пользователя:
-     * - если не залогинен — null;
-     * - если нет в БД или заблокирован — логаут и null.
+     * Получить текущего пользователя:
+     *  - если не залогинен — null;
+     *  - если нет в БД или заблокирован — логаут и null.
+     *
+     * @return array<string, mixed>|null
      */
-
     public function getCurrentUser(): ?array
     {
         $userId = Auth::userId();
@@ -150,7 +150,6 @@ class UserService
      *
      * @return array<int, array<string, mixed>>
      */
-
     public function listUsersForTable(): array
     {
         return $this->users->findAllForTable();
@@ -161,10 +160,8 @@ class UserService
      *
      * @param int[] $ids
      */
-
-    public function applyBulkAction(string $action, array $ids, int $currentUserId): void
+    public function applyBulkAction(string $action, array $ids): void
     {
-        // Нормализуем массив id
         $ids = array_values(array_unique(array_map('intval', $ids)));
 
         if (!$ids) {
@@ -187,7 +184,5 @@ class UserService
             default:
                 throw new InvalidArgumentException('Unknown bulk action.');
         }
-
-        // Специальная логика по текущему пользователю будет обработана в контроллере
     }
 }

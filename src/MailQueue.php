@@ -8,10 +8,9 @@ use DateTimeImmutable;
 use PDO;
 
 /**
- * Очередь писем: HTTP-запрос только кладёт запись в mail_queue,
- * а отдельный CLI-скрипт их отправляет.
+ * Очередь писем: HTTP-запрос кладёт запись в mail_queue,
+ * отдельный CLI-скрипт их отправляет.
  */
-
 class MailQueue
 {
     public function __construct(private readonly PDO $pdo)
@@ -40,11 +39,13 @@ class MailQueue
      *
      * @return array<int, array<string, mixed>>
      */
-
     public function fetchPending(int $limit = 20): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM mail_queue WHERE status = 'pending' ORDER BY id ASC LIMIT :limit"
+            "SELECT * FROM mail_queue
+             WHERE status = 'pending'
+             ORDER BY id ASC
+             LIMIT :limit"
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
@@ -57,7 +58,9 @@ class MailQueue
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
         $stmt = $this->pdo->prepare(
-            "UPDATE mail_queue SET status = 'sent', sent_at = :sent_at, last_error = NULL WHERE id = :id"
+            "UPDATE mail_queue
+             SET status = 'sent', sent_at = :sent_at, last_error = NULL
+             WHERE id = :id"
         );
         $stmt->execute([
             'sent_at' => $now,
@@ -68,7 +71,9 @@ class MailQueue
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare(
-            "UPDATE mail_queue SET status = 'failed', last_error = :error WHERE id = :id"
+            "UPDATE mail_queue
+             SET status = 'failed', last_error = :error
+             WHERE id = :id"
         );
         $stmt->execute([
             'error' => $error,

@@ -3,7 +3,8 @@
   "description": "Simple user management app for Task #4 (PHP)",
   "type": "project",
   "require": {
-    "php": "^8.1"
+    "php": "^8.1",
+    "ext-pdo": "*"
   },
   "autoload": {
     "psr-4": {

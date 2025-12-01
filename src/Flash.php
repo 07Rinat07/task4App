@@ -8,8 +8,6 @@ namespace App;
  * Флеш-сообщения: сохраняем в сессию массив сообщений
  * и один раз выводим, затем очищаем.
  */
-
-
 class Flash
 {
     private const SESSION_KEY = 'flash_messages';
@@ -21,7 +19,7 @@ class Flash
         }
 
         $_SESSION[self::SESSION_KEY][] = [
-            'type'    => $type,    // success / danger / warning / info (классы Bootstrap)
+            'type'    => $type,    // success / danger / warning / info (Bootstrap)
             'message' => $message,
         ];
     }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App;
 
 /**
- * класс для работы с авторизацией.
- * Логика: в сессии храним только user_id.
+ * Класс для работы с авторизацией.
+ * В сессии храним только идентификатор пользователя.
  */
 class Auth
 {
@@ -34,6 +34,6 @@ class Auth
     {
         self::startSession();
 
-        return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+        return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
     }
 }

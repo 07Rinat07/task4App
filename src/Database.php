@@ -8,8 +8,8 @@ use PDO;
 use PDOException;
 
 /**
- * Очень простой синглтон вокруг PDO.
- * Цель: один раз настроить PDO, дальше везде вызывать Database::getConnection().
+ * Простейший синглтон вокруг PDO.
+ * Один раз создаём соединение и переиспользуем в приложении.
  */
 class Database
 {
@@ -36,7 +36,6 @@ class Database
                     ]
                 );
             } catch (PDOException $e) {
-                // можно просто показать ошибку и завершиться.
                 exit('Database connection failed: ' . $e->getMessage());
             }
         }
