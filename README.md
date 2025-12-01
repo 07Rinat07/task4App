@@ -14,22 +14,13 @@
 
 #### Verify email
 * меняет на active
-* blocked остаётся blocked
 
-$$$$ Авторизация
+#### Авторизация
 * unverified может входить
-* blocked НЕ может
 * deleted = может заново регистрироваться
 
 #### Админ-панель
 * таблица
 * чекбоксы
 * toolbar
-* NO кнопок в строках
 * сортировка
-#### Bulk-actions
-* block
-* unblock
-* delete
-* delete_unverified
-* self-block → logout
